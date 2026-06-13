@@ -1,2 +1,535 @@
-# sistem-pendeteksi-kebocoran-arus-listrik-
-pendeteksi kebocoran 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElecGuard - Monitoring Kebocoran Arus</title>
+    <style>
+        /* --- RESET & GLOBAL STYLE --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* --- LOGIN PAGE --- */
+        #login-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card h2 {
+            margin-bottom: 10px;
+            color: #1e3c72;
+        }
+
+        .login-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .pln-logo {
+            width: 2cm;
+            height: 2cm;
+            margin-bottom: 16px;
+            object-fit: contain;
+            display: inline-block;
+        }
+
+        /* --- LOGO & TEKS SIDEBAR (BARU & DIPERBAIKI) --- */
+        .brand-container {
+            display: flex;          /* Memaksa logo dan teks berjejer kesamping */
+            align-items: center;    /* Rata tengah secara vertikal */
+            gap: 12px;              /* Jarak antara logo dan teks */
+            margin-bottom: 30px;    /* Jarak bawah menuju menu navigasi */
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Garis pembatas tipis */
+        }
+
+        .sidebar-logo {
+            width: auto;
+            height: 45px;           /* Ukuran logo disesuaikan agar ideal */
+            object-fit: contain;
+            flex-shrink: 0;         /* Mencegah logo gepeng/mengecil */
+        }
+
+        .brand-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;         /* Warna tulisan putih terang */
+            line-height: 1.3;       /* Jarak baris saat teks otomatis turun kebawah */
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #1e3c72;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-login:hover {
+            background: #2a5298;
+        }
+
+        .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* --- MAIN LAYOUT (SIDEBAR & CONTENT) --- */
+        #main-layout {
+            display: flex;
+            width: 100%;
+            display: none; /* Sembunyikan sebelum login */
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px; /* Sedikit dilebarkan dari 260px agar teks samping logo lebih leluasa */
+            background: #111e38;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar menu li a {
+            color: #b8c7ce;
+            text-decoration: none;
+            padding: 12px 15px;
+            display: block;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .sidebar menu li a:hover, .sidebar menu li a.active {
+            background: #1e3c72;
+            color: #fff;
+        }
+
+        .btn-logout {
+            margin-top: auto;
+            background: #a13125;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .page-section {
+            display: none; /* Sembunyikan semua section default */
+        }
+
+        .page-section.active-section {
+            display: block; /* Hanya tampilkan yang aktif */
+        }
+
+        /* --- DASHBOARD STYLES --- */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid #1e3c72;
+        }
+
+        .card.danger { border-left-color: #e74c3c; }
+        .card.warning { border-left-color: #f1c40f; }
+        .card.success { border-left-color: #2ecc71; }
+
+        .card h3 {
+            font-size: 14px;
+            color: #777;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .card .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        /* --- DETEKSI & PREDIKSI STYLES --- */
+        .status-box {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .status-indicator {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #2ecc71;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+            transition: all 0.5s ease;
+        }
+
+        .status-indicator.danger-leak {
+            background: #e74c3c;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        table th, table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        table th {
+            background-color: #1e3c72;
+            color: white;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .badge.aman { background-color: #2ecc71; }
+        .badge.bocor { background-color: #e74c3c; }
+
+        .chart-placeholder {
+            background: #e9ecef;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #666;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-page">
+        <div class="login-card">
+            <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="pln-logo">
+            <p>Silakan login untuk mengakses dashboard monitoring</p>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Masukkan username (admin)">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Masukkan password (admin123)">
+            </div>
+            <button class="btn-login" onclick="handleLogin()">Masuk</button>
+            <div id="login-error" class="error-msg">Username atau password salah!</div>
+        </div>
+    </div>
+
+    <div id="main-layout">
+
+        <aside class="sidebar">
+            <div class="brand-container">
+                <img src="https://cdn.prod.website-files.com/64f9d0036cb97160cc26feba/67c5b4c0e514894449aca0cd_Logo%20PLN.png" alt="Logo PLN" class="sidebar-logo"> 
+                <span class="brand-text">Sistem Kendeteksi Kebocoran Arus</span>
+            </div>
+            
+            <menu>
+                <li><a href="#" id="menu-dashboard" class="active" onclick="switchPage('dashboard')">Dashboard</a></li>
+                <li><a href="#" id="menu-deteksi" onclick="switchPage('deteksi')">Deteksi Kebocoran</a></li>
+                <li><a href="#" id="menu-prediksi" onclick="switchPage('prediksi')">Prediksi Monitoring</a></li>
+            </menu>
+            <button class="btn-logout" onclick="handleLogout()">Keluar (Logout)</button>
+        </aside>
+
+        <main class="content">
+            <div class="header-content">
+                <h1 id="page-title">Dashboard Utama</h1>
+                <p>Status Sistem: <strong style="color: #2ecc71;">Online</strong></p>
+            </div>
+
+            <div id="section-dashboard" class="page-section active-section">
+                <div class="cards-grid">
+                    <div class="card success">
+                        <h3>Arus Masuk (In)</h3>
+                        <div class="value" id="dash-arus-masuk">5.24 A</div>
+                    </div>
+                    <div class="card success">
+                        <h3>Arus Keluar (Out)</h3>
+                        <div class="value" id="dash-arus-keluar">5.24 A</div>
+                    </div>
+                    <div class="card" id="card-selisih">
+                        <h3>Selisih / Delta</h3>
+                        <div class="value" id="dash-delta">0.00 A</div>
+                    </div>
+                    <div class="card success" id="card-status">
+                        <h3>Status Sistem</h3>
+                        <div class="value" style="font-size: 20px;" id="dash-status-text">Aman</div>
+                    </div>
+                </div>
+
+                <h3>Log Aktivitas Terakhir</h3>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Arus Masuk</th>
+                            <th>Arus Keluar</th>
+                            <th>Kebocoran</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body"></tbody>
+                </table>
+            </div>
+
+            <div id="section-deteksi" class="page-section">
+                <div class="status-box">
+                    <h2>Kondisi Real-Time Arus Listrik</h2>
+                    <div id="deteksi-indicator" class="status-indicator">AMAN</div>
+                    <p id="deteksi-detail">Tidak terdeteksi adanya lompatan arus berlebih.</p>
+                    <button class="btn-login" style="width: auto; margin-top: 15px; padding: 10px 20px;" onclick="simulasikanKebocoran()">
+                        Simulasikan Kebocoran (Test Alat)
+                    </button>
+                </div>
+            </div>
+
+            <div id="section-prediksi" class="page-section">
+                <div class="status-box" style="text-align: left;">
+                    <h2>Analisis & Prediksi Berbasis Tren</h2>
+                    <p style="margin-bottom: 15px; color: #666;">
+                        Menggunakan algoritma rata-rata bergerak untuk memprediksi potensi keausan kabel atau kebocoran arus dalam 24 jam ke depan.
+                    </p>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h4>Hasil Analisis AI:</h4>
+                        <p style="margin-top: 5px; font-weight: 500;" id="prediksi-text">
+                            Grafik menunjukkan beban stabil. Kemungkinan terjadi kebocoran besok hari: <span style="color: #2ecc71; font-weight: bold;">2.1% (Sangat Rendah)</span>.
+                        </p>
+                    </div>
+
+                    <h3>Grafik Prediksi 7 Hari Ke Depan</h3>
+                    <div class="chart-placeholder">
+                        [ Grafik Tren Kebocoran Arus - Ruang Panel Utama ]
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- 1. SCRIPT LOGIN ---
+        function handleLogin() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            if(user === "admin" && pass === "admin123") {
+                document.getElementById('login-page').style.display = 'none';
+                document.getElementById('main-layout').style.display = 'flex';
+                initDashboard();
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        function handleLogout() {
+            document.getElementById('login-page').style.display = 'flex';
+            document.getElementById('main-layout').style.display = 'none';
+            document.getElementById('username').value = "";
+            document.getElementById('password').value = "";
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        // --- 2. SCRIPT NAVIGASI MENU ---
+        function switchPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active-section');
+            });
+            document.querySelectorAll('.sidebar menu li a').forEach(menu => {
+                menu.classList.remove('active');
+            });
+
+            if(pageId === 'dashboard') {
+                document.getElementById('section-dashboard').classList.add('active-section');
+                document.getElementById('menu-dashboard').classList.add('active');
+                document.getElementById('page-title').innerText = "Dashboard Utama";
+            } else if(pageId === 'deteksi') {
+                document.getElementById('section-deteksi').classList.add('active-section');
+                document.getElementById('menu-deteksi').classList.add('active');
+                document.getElementById('page-title').innerText = "Menu Pendeteksi Kebocoran";
+            } else if(pageId === 'prediksi') {
+                document.getElementById('section-prediksi').classList.add('active-section');
+                document.getElementById('menu-prediksi').classList.add('active');
+                document.getElementById('page-title').innerText = "Prediksi & Analisis";
+            }
+        }
+
+        // --- 3. SIMULASI DATA MONITORING (JS REAL-TIME) ---
+        function initDashboard() {
+            const tableBody = document.getElementById('log-table-body');
+            tableBody.innerHTML = ""; 
+
+            let waktuSekarang = new Date();
+            for(let i = 0; i < 5; i++) {
+                let m = (5.00 + Math.random() * 0.5).toFixed(2);
+                let k = m; 
+                let timeStr = `${waktuSekarang.getHours()}:${waktuSekarang.getMinutes() - (i*5)}`;
+                
+                let row = `<tr>
+                    <td>Hari ini, ${timeStr}</td>
+                    <td>${m} A</td>
+                    <td>${k} A</td>
+                    <td>0.00 A</td>
+                    <td><span class="badge aman">Aman</span></td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            }
+        }
+
+        function simulasikanKebocoran() {
+            const indicator = document.getElementById('deteksi-indicator');
+            const detailText = document.getElementById('deteksi-detail');
+            const dashArusMasuk = document.getElementById('dash-arus-masuk');
+            const dashArusKeluar = document.getElementById('dash-arus-keluar');
+            const dashDelta = document.getElementById('dash-delta');
+            const dashStatusText = document.getElementById('dash-status-text');
+            const cardStatus = document.getElementById('card-status');
+            const cardDelta = document.getElementById('card-selisih');
+
+            indicator.innerText = "BAHAYA";
+            indicator.classList.add('danger-leak');
+            detailText.innerHTML = "<strong>Terdeteksi Kebocoran!</strong> Arus keluar lebih kecil 0.85A dibanding arus masuk. Segera periksa jalur kabel!";
+
+            dashArusMasuk.innerText = "5.45 A";
+            dashArusKeluar.innerText = "4.60 A";
+            dashDelta.innerText = "0.85 A";
+            dashStatusText.innerText = "BOCOR!";
+            
+            cardStatus.style.borderLeftColor = "#e74c3c";
+            cardDelta.style.borderLeftColor = "#e74c3c";
+
+            document.getElementById('prediksi-text').innerHTML = `
+                <span style="color: #e74c3c; font-weight: bold;">PERINGATAN:</span> 
+                Tren saat ini mendeteksi anomali aktif. Kemungkinan kerusakan isolasi kabel meningkat menjadi 
+                <span style="color: #e74c3c; font-weight: bold;">87.4%</span> dalam waktu dekat.
+            `;
+
+            alert("Simulasi diaktifkan! Sistem mendeteksi adanya kebocoran arus listrik.");
+        }
+    </script>
+</body>
+</html>
